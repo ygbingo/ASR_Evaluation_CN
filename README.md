@@ -2,6 +2,7 @@
 中文ASR评测指标，WER和SER计算。
 
 Calculate asr evaluation like WER and SER in Chinese.
+Calculate levenshtein distance.
 
 ### Requirements
 - Python 3.7+
