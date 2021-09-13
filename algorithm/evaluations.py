@@ -88,3 +88,99 @@ def calculate_WER(ori_text, rec_text):
                 DELETE += 1
     res = (INSERT + DELETE + REPLACE) / NUM
     return res
+
+def calculate_Levenshtein(ori_text, rec_text):
+    """
+    计算Levenshtein
+    :param ori_text: 真实结果
+    :param rec_text: 识别结果
+    :return: number 计算的WER结果
+    """
+    res = -1
+    ori_text = ''.join(ori_text)
+    rec_text = ''.join(rec_text)
+    if len(ori_text) <= 0 or len(rec_text) <= 0:
+        return res
+
+    ori_text = del_symbol(ori_text)
+    rec_text = del_symbol(rec_text)
+
+    from .violent_dist.enumerate import ViolentMinEditDistance_v1
+
+    vilent_v1 = ViolentMinEditDistance_v1(ori_text, rec_text)
+    vilent_v1.fit()
+
+    return res
+
+def calculate_Dynamic(ori_text, rec_text):
+    """
+    动态规划计算Levenshtein
+    :param ori_text: 真实结果
+    :param rec_text: 识别结果
+    :return: number 计算的WER结果
+    """
+    res = -1
+    ori_text = ''.join(ori_text)
+    rec_text = ''.join(rec_text)
+    if len(ori_text) <= 0 or len(rec_text) <= 0:
+        return res
+
+    ori_text = del_symbol(ori_text)
+    rec_text = del_symbol(rec_text)
+    print(ori_text)
+    print(rec_text)
+    from .violent_dist.dynamic import DPMinEditDistance
+
+    dp_dist = DPMinEditDistance(ori_text, rec_text)
+    dp_dist.fit()
+
+    return res
+
+def calculate_Recursion(ori_text, rec_text):
+    """
+    递归计算levenshtein
+    :param ori_text: 真实结果
+    :param rec_text: 识别结果
+    :return: number 计算的WER结果
+    """
+    res = -1
+    ori_text = ''.join(ori_text)
+    rec_text = ''.join(rec_text)
+    if len(ori_text) <= 0 or len(rec_text) <= 0:
+        return res
+
+    ori_text = del_symbol(ori_text)
+    rec_text = del_symbol(rec_text)
+    print(ori_text)
+    print(rec_text)
+    from .violent_dist.recursion import ViolentMinEditDistance_v2
+
+    vilent_v2 = ViolentMinEditDistance_v2(ori_text, rec_text)
+    vilent_v2.fit()
+
+    return res
+
+def calculate_np_levenshtein(ori_text, rec_text):
+    """
+    利用numpy计算levenshtein
+    :param ori_text:
+    :param rec_text:
+    :return:
+    """
+    res = -1
+    ori_text = ''.join(ori_text)
+    rec_text = ''.join(rec_text)
+    if len(ori_text) <= 0 or len(rec_text) <= 0:
+        return res
+
+    ori_text = del_symbol(ori_text)
+    rec_text = del_symbol(rec_text)
+    print(ori_text)
+    print(rec_text)
+    from .violent_dist.np_matrix import levenshtein
+
+    dist = levenshtein(ori_text, rec_text)
+
+    print("leven SER: " + str(dist/len(ori_text)))
+
+    return dist
