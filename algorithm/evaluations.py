@@ -1,9 +1,12 @@
 """
 calculate SER and WER
 """
-from .data_process import del_symbol
+from .data_process import del_symbol, number2cn
 from difflib import Differ
+from .violent_dist.np_matrix import levenshtein
 import re
+from .violent_dist.recursion import ViolentMinEditDistance_v2
+
 
 def calculate_SER(ori_text, rec_text):
     """
@@ -153,7 +156,6 @@ def calculate_Recursion(ori_text, rec_text):
     rec_text = del_symbol(rec_text)
     print(ori_text)
     print(rec_text)
-    from .violent_dist.recursion import ViolentMinEditDistance_v2
 
     vilent_v2 = ViolentMinEditDistance_v2(ori_text, rec_text)
     vilent_v2.fit()
@@ -174,10 +176,11 @@ def calculate_np_levenshtein(ori_text, rec_text):
         return res
 
     ori_text = del_symbol(ori_text)
+    ori_text = number2cn(ori_text)
     rec_text = del_symbol(rec_text)
+    rec_text = number2cn(rec_text)
     print(ori_text)
     print(rec_text)
-    from .violent_dist.np_matrix import levenshtein
 
     dist = levenshtein(ori_text, rec_text)
 

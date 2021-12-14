@@ -9,6 +9,9 @@ from algorithm.evaluations import calculate_Levenshtein, calculate_np_levenshtei
 import os
 import cn2an
 
+REPLACE_LIST = []
+DELETE_LIST = []
+INSERT_LIST = []
 
 def del_symbol(texts: str):
     """
@@ -139,6 +142,31 @@ def calculate_WER(ori_text, rec_text):
 
     differ = Differ()
     result = list(differ.compare(rec_text, ori_text))
+    replace_list = []
+    delete_list = []
+    delete_session = []
+    insert_list = []
+    insert_session = []
+    for res in result:
+        res = res.split(' ')
+        if len(res) == 2:
+            tag, text = res[0], res[1]
+            if tag == '-':
+                delete_session.append(text)
+            if tag == '+':
+                insert_session.append(text)
+        else:
+            if len(delete_session) > 0 and len(insert_session) > 0:
+                replace_list.append([''.join(delete_session.copy()), ''.join(insert_session.copy())])
+                delete_session.clear()
+                insert_session.clear()
+            if len(delete_session) > 0:
+                delete_list.append(''.join(delete_session.copy()))
+                delete_session.clear()
+            if len(insert_session) > 0:
+                insert_list.append(''.join(insert_session.copy()))
+                insert_session.clear()
+
     result2 = ''.join(result)
     result = re.findall(r"\+|-", result2)
 
@@ -159,7 +187,58 @@ def calculate_WER(ori_text, rec_text):
             else:
                 INSERT += 1
     res = (INSERT + DELETE + REPLACE) / NUM
-    return res, result2
+    return res, result2, replace_list, insert_list, delete_list
+
+def analystic_wer():
+    """
+    分析replace,insert,delete词频
+    :return:
+    """
+    result_file = "wer_detail.txt"
+    result_writer = open(result_file, "w")
+    result_writer.write('### REPLACE\n')
+
+    replace_dict = dict()
+    for replace_session in REPLACE_LIST:
+        _, insert_session = replace_session
+        replace_session = str(replace_session)
+        if insert_session in replace_dict.keys():
+            replace_dict[insert_session] = replace_dict[insert_session] + 1
+        else:
+            replace_dict[insert_session] = 1
+
+    replace_list = sorted(replace_dict.items(), key=lambda x: x[1], reverse=True)
+    for replace_session in replace_list:
+        result_writer.write(str(replace_session) + "\n")
+
+    result_writer.write('\n\n\n### INSERT\n')
+    insert_dict = dict()
+    for insert_words in INSERT_LIST:
+        insert_words = str(insert_words)
+        if insert_words == '': continue
+        if insert_words in insert_dict.keys():
+            insert_dict[insert_words] = insert_dict[insert_words] + 1
+        else:
+            insert_dict[insert_words] = 1
+    insert_list = sorted(insert_dict.items(), key=lambda x: x[1], reverse=True)
+    for insert_words in insert_list:
+        result_writer.write(str(insert_words) + "\n")
+
+    result_writer.write('\n\n\n### DELETE\n')
+    delete_dict = dict()
+    for delete_word in DELETE_LIST:
+        delete_word = str(delete_word)
+        if delete_word == '': continue
+        if delete_word in delete_dict.keys():
+            delete_dict[delete_word] = delete_dict[delete_word] + 1
+        else:
+            delete_dict[delete_word] = 1
+    delete_list = sorted(delete_dict.items(), key=lambda x: x[1], reverse=True)
+    for delete_words in delete_list:
+        result_writer.write(str(delete_words) + "\n")
+
+
+
 
 def main(ori_path: str, rec_path: str):
     SER_Res = -1
@@ -183,16 +262,16 @@ def main(ori_path: str, rec_path: str):
         print("levens_dist: " + str(levenshtein_dist))
         SER_Res = calculate_SER(ori_texts, rec_texts)
 
-        WER_Res, WER_results = calculate_WER(ori_texts, rec_texts)
+        WER_Res, WER_results, replace_list, insert_list, delete_list = calculate_WER(ori_texts, rec_texts)
 
-    return SER_Res, WER_Res, levenshtein_dist, ori_texts, rec_texts, WER_results
+    return SER_Res, WER_Res, levenshtein_dist, ori_texts, rec_texts, WER_results, replace_list, insert_list, delete_list
 
 if __name__ == '__main__':
     ori_root_path = "E:\\xiaoice\\asr_dataset\\1208训练数据[分轨音频文字校对]汇总\\1208训练数据转写\\"
     ori_files = os.listdir(ori_root_path)
 
     writer = jsonlines.open("eva_res_v3.jsonl", "w")
-    writer.write("file_name,SER,WER,LEVENSHTEIN,wer_results")
+    writer.write("file_name,SER,WER,LEVENSHTEIN,wer_results,replace,insert,delete")
 
     tencent_res_path = "E:\\User\\Documents\\github\\asr_rep\\1201训练数据\\"
     tencent_files = os.listdir(tencent_res_path)
@@ -203,7 +282,7 @@ if __name__ == '__main__':
     ali_res_path = "E:\\User\\Documents\\github\\asr_rep\\ali_asr\\ali_results\\"
     # ali_files = os.listdir(ali_res_path)
 
-    for ori_file in ori_files:
+    for idx, ori_file in enumerate(ori_files):
         # if '北京+北京_丁明_202109201946341060756622245_right' in ori_file:
         #     print("stop")
         # else:
@@ -217,6 +296,15 @@ if __name__ == '__main__':
         ali_file_path = ali_res_path + ori_file
         rec_file_path = tencent_res_path_selfmodel + ori_file
 
-        SER_Res, WER_Res, levenshtein_dist, ori_texts, rec_texts, WER_results = main(ori_file_path, rec_file_path)
+        SER_Res, WER_Res, levenshtein_dist, ori_texts, rec_texts, WER_results, replace_list, insert_list, delete_list = main(ori_file_path, rec_file_path)
 
-        writer.write(str(ori_file + "," + str(SER_Res) + "," + str(WER_Res) + "," + str(levenshtein_dist) + "," + WER_results))
+        writer.write(str(ori_file + "," + str(SER_Res) + "," + str(WER_Res) + "," + str(levenshtein_dist) + "," + WER_results + "," + str(replace_list) + "," + str(insert_list) + "," + str(delete_list)))
+
+        REPLACE_LIST.extend(replace_list)
+        INSERT_LIST.extend(insert_list)
+        DELETE_LIST.extend(delete_list)
+
+        # if idx > 4:
+        #     break
+
+    analystic_wer()
