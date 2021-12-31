@@ -42,17 +42,6 @@ def generate_ori_text(path):
         ori_texts.append(line[-1].replace("\n", ""))
     return ori_texts
 
-def generate_jiakang_text(path):
-    """解析纠错label文件的text内容"""
-    with open(path, "r") as f:
-        lines = f.readlines()
-    ori_texts = []
-    for line in lines:
-        line = line.strip().split("\t")
-        if len(line) < 2: continue
-        ori_texts.append(line[-1].replace("\n", ""))
-    return ori_texts
-
 def generate_ali_text(path):
     """解析阿里识别的text"""
     with open(path, "r") as f:
@@ -271,25 +260,9 @@ def analystic_wer():
 
 
 
-def main(ori_path: str, rec_path: str):
+def main(ori_texts: str, rec_texts: str):
     SER_Res = -1
     WER_Res = -1
-    ori_texts = generate_ori_text(ori_path)
-    rec_texts = []
-    if rec_path.startswith("./data/ali") or 'ali' in rec_path:
-        rec_texts = generate_ali_text(rec_path)
-    elif rec_path.startswith("./data/tencent"):
-        rec_texts = generate_tencent_text(rec_path)
-    elif rec_path.startswith("./data/ty_xunfei") or rec_path.startswith("./data/xunfei") or 'xunfei' in rec_path:
-        rec_texts = generate_xunfei_text(rec_path)
-    elif 'baidu' in rec_path:
-        rec_texts = generate_baidu_text(rec_path)
-    elif 'azure' in rec_path or 'tencent_076dbd9_0f236fb' in rec_path:
-        rec_texts = generate_azure_text(rec_path)
-    elif '纠错' in rec_path:
-        rec_texts = generate_jiakang_text(rec_path)
-    else:
-        rec_texts = generate_ori_text(rec_path)
 
     print(ori_texts)
     print(rec_texts)
@@ -303,57 +276,46 @@ def main(ori_path: str, rec_path: str):
 
     return SER_Res, WER_Res, levenshtein_dist, ori_texts, rec_texts, WER_results, replace_list, insert_list, delete_list
 
+
 if __name__ == '__main__':
-    ori_root_path = "E:\\xiaoice\\asr_dataset\\1231对比\\110个录音人工标注结果\\[人工标注结果]高意向samples-70个session\\"
-    ori_files = os.listdir(ori_root_path)
+    ori_root_path = "E:\\User\\Documents\\github\\asr_rep\\AISHELL1\\data_aishell\\transcript\\aishell_transcript_v0.8.txt"
+
+    with open(ori_root_path, "r") as f:
+        lines = f.readlines()
+
+    file_name_list = []
+    text_list = []
+    for line in lines:
+        line = line.split(" ")
+        file_name = line[0]
+        text = ''.join(line[1:])
+        file_name_list.append(file_name)
+        text_list.append(text)
+
+    ori_df = pd.DataFrame(data={"file_name": file_name_list.copy(), "text": text_list.copy()})
+    file_name_list.clear()
+    text_list.clear()
 
     writer = jsonlines.open("eva_res_v3.jsonl", "w")
     writer.write("file_name,SER,WER,LEVENSHTEIN,wer_results,replace,insert,delete")
 
-    tencent_res_path = "E:\\User\\Documents\\github\\asr_rep\\1201训练数据\\"
-    tencent_files = os.listdir(tencent_res_path)
+    # tencent_res_path = "E:\\User\\Documents\\github\\asr_rep\\1201训练数据\\"
+    tencent_res_path = "E:\\User\\Documents\\github\\asr_rep\\AISHELL1\\baidu_results.txt"
 
-    # tencent_res_path_selfmodel = "E:\\User\\Documents\\github\\asr_rep\\1215对比\\tencent_without_vocablist\\"
-    # tencent_selfmodel_files = os.listdir(tencent_res_path_selfmodel)
+    with open(tencent_res_path, "r") as f:
+        lines = f.readlines()
 
-    ali_res_path = "E:\\User\\Documents\\github\\asr_rep\\1215对比\\ali_with_vocablist\\"
-    ali_files = os.listdir(ali_res_path)
 
-    baidu_res_path = "E:\\User\\Documents\\github\\asr_rep\\1215对比\\baidu_with_vocablist\\"
+    for idx, line in enumerate(lines):
+        file_name, text = line.split("\t")
+        ori_text = ori_df[ori_df.file_name == file_name].text.to_list()[0]
 
-    azure_res_path = "E:\\User\\Documents\\github\\asr_rep\\1215对比\\azure_by_model\\"
-    azure_file_list = os.listdir(azure_res_path)
+        SER_Res, WER_Res, levenshtein_dist, ori_texts, rec_texts, WER_results, replace_list, insert_list, delete_list = main(
+            ori_text, text)
 
-    xunfei_res_path = "E:\\User\\Documents\\github\\asr_rep\\1215对比\\xunfei_cloud\\"
-    xunfei_file_list = os.listdir(xunfei_res_path)
-
-    tencent_1216_root_path = "E:\\xiaoice\\asr_dataset\\1231对比\\纠错\\高意向samples-70个session(纠正过的)\\"
-    tencent_rec_files = os.listdir(tencent_1216_root_path)
-
-    for idx, ori_file in enumerate(ori_files):
-        # if '北京+北京_丁明_202109201946341060756622245_right' in ori_file:
-        #     print("stop")
-        # else:
-        #     continue
-        # if '_张女士_202110221838071685076723132_left' not in ori_file: continue
-
-        print(ori_file)
-        if ori_file not in tencent_rec_files:
-            print("Cannot find this res in tencent.")
-            continue
-        ori_file_path = ori_root_path + ori_file
-        tencent_file_path = tencent_res_path + ori_file
-        ali_file_path = ali_res_path + ori_file
-        baidu_file_path = baidu_res_path + "baidu" + ori_file
-        # rec_file_path = tencent_res_path_selfmodel + ori_file
-        azure_file_path = azure_res_path + ori_file
-        tencent_flash_file_path = tencent_1216_root_path + ori_file
-
-        xunfei_file_path = xunfei_res_path + ori_file
-
-        SER_Res, WER_Res, levenshtein_dist, ori_texts, rec_texts, WER_results, replace_list, insert_list, delete_list = main(ori_file_path, tencent_flash_file_path)
-
-        writer.write(str(ori_file + "," + str(SER_Res) + "," + str(WER_Res) + "," + str(levenshtein_dist) + "," + WER_results + "," + str(replace_list) + "," + str(insert_list) + "," + str(delete_list)))
+        writer.write(str(file_name + "," + str(SER_Res) + "," + str(WER_Res) + "," + str(
+            levenshtein_dist) + "," + WER_results + "," + str(replace_list) + "," + str(insert_list) + "," + str(
+            delete_list)))
 
         REPLACE_LIST.extend(replace_list)
         INSERT_LIST.extend(insert_list)

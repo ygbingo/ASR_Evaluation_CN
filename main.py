@@ -191,13 +191,14 @@ if __name__ == '__main__':
     ori_root_path = "E:\\xiaoice\\asr_dataset\\1208训练数据[分轨音频文字校对]汇总\\1208训练数据转写\\"
     ori_files = os.listdir(ori_root_path)
 
+
     writer = jsonlines.open("eva_res_v3.jsonl", "w")
     writer.write("file_name,SER,WER,LEVENSHTEIN,wer_results")
 
     tencent_res_path = "E:\\User\\Documents\\github\\asr_rep\\1201训练数据\\"
     tencent_files = os.listdir(tencent_res_path)
 
-    tencent_res_path_selfmodel = "E:\\User\\Documents\\github\\asr_rep\\1214自学习模型-热词db9607695cb011eca4de446a2eb5fd98\\"
+    tencent_res_path_selfmodel = "E:\\User\\Documents\\github\\asr_rep\\1215-热词7d57cf6b5ccc11eca4de446a2eb5fd98\\"
     tencent_selfmodel_files = os.listdir(tencent_res_path_selfmodel)
 
     ali_res_path = "E:\\User\\Documents\\github\\asr_rep\\ali_asr\\ali_results\\"
@@ -209,6 +210,7 @@ if __name__ == '__main__':
         # else:
         #     continue
         print(ori_file)
+
         if ori_file not in tencent_files:
             print("Cannot find this res in tencent.")
             continue
